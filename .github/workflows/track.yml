@@ -1,0 +1,111 @@
+name: Track Hilo charger
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which charger to watch
+        type: choice
+        default: ANY
+        options: [ANY, OC14365, OC14364]
+      hours:
+        description: Stop after this many hours
+        type: choice
+        default: "2"
+        options: ["1", "2", "3", "4"]
+      drive:
+        description: Your drive time in minutes (for the leave-now alert)
+        default: "10"
+concurrency:
+  group: track
+  cancel-in-progress: true
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 250
+    steps:
+      - name: Watch OpConnect and notify via ntfy
+        shell: python
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          OPC_ACCOUNT: ${{ secrets.OPC_ACCOUNT }}
+          TARGET: ${{ inputs.target }}
+          HOURS: ${{ inputs.hours }}
+          DRIVE: ${{ inputs.drive }}
+        run: |
+          import json, os, re, time, statistics, urllib.request
+          STATUS = "https://www.opconnect.com/API/ChargingStations.svc/StationLocationForWeb/737/4421955b-1096-4f12-8c01-f57483a7bd6e"
+          PAGE = "https://bloki-cloud.github.io/hilo-charger-watch/"
+          CABLE = {"OC14365": "NACS cable", "OC14364": "CCS cable"}
+          topic = os.environ["NTFY_TOPIC"].strip()
+          acct = (os.environ.get("OPC_ACCOUNT") or "").strip()
+          target = os.environ.get("TARGET") or "ANY"
+          hours = float(os.environ.get("HOURS") or 2)
+          try: drive = max(1, int(float(os.environ.get("DRIVE") or 10)))
+          except ValueError: drive = 10
+
+          def get(url):
+              req = urllib.request.Request(url, headers={"User-Agent": "hilo-charger-watch"})
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  return json.load(r)
+
+          def ntfy(title, msg, prio="default", tags="electric_plug"):
+              req = urllib.request.Request(f"https://ntfy.sh/{topic}", data=msg.encode(), method="POST",
+                  headers={"Title": title, "Priority": prio, "Tags": tags, "Click": PAGE})
+              urllib.request.urlopen(req, timeout=20).read()
+
+          def ms(v):
+              m = re.search(r"\d+", v or "")
+              return int(m.group()) if m else None
+
+          def hst(t):
+              return time.strftime("%-I:%M %p", time.gmtime(t / 1000 - 36000))
+
+          who = "either charger" if target == "ANY" else target
+          ntfy("Tracking started", f"Watching {who} for {hours:g} h. You'll get one alert when it opens.", "low", "eyes")
+          end = time.time() + hours * 3600
+          leave_sent, errors = set(), 0
+          while time.time() < end:
+              try:
+                  st = get(STATUS)
+                  errors = 0
+                  chargers = [(c["ID"], str(c.get("Title", "")).strip(), str(c.get("OCPIStatus", "")).upper())
+                              for c in st.get("ChargingStations", [])]
+                  watched = [c for c in chargers if target == "ANY" or c[1] == target]
+                  free = [n for _, n, s in watched if s == "AVAILABLE"]
+                  print(time.strftime("%H:%M:%S"), [(n, s) for _, n, s in chargers])
+                  if free:
+                      names = " & ".join(free)
+                      cables = " or ".join(CABLE.get(n, "CCS cable") for n in free)
+                      ntfy(f"{names} is open", f"{names} at HECO Hilo is AVAILABLE now. Use the {cables}. About {drive} min drive.",
+                           "high", "white_check_mark,electric_plug")
+                      raise SystemExit(0)
+                  if acct:
+                      now = time.time() * 1000
+                      for cid, name, _ in watched:
+                          if name in leave_sent:
+                              continue
+                          lst = get(f"https://www.opconnect.com/API/ChargingSessions.svc/ChargingSessionList/Descending/{acct}/?stationID={cid}").get("SessionList", [])
+                          cur = next((x for x in lst if not x.get("EndTime")), None)
+                          if not cur or not ms(cur.get("StartTime")):
+                              continue
+                          start = ms(cur["StartTime"])
+                          el = (now - start) / 6e4
+                          durs = sorted((ms(x["EndTime"]) - ms(x["StartTime"])) / 6e4 for x in lst
+                                        if x.get("EndTime") and (x.get("Energy") or 0) > 0.5)
+                          longer = [d for d in durs if d > el]
+                          finish = start + statistics.median(longer) * 6e4 if len(longer) >= 2 else now
+                          if finish - now <= drive * 6e4:
+                              ntfy(f"Leave now for {name}",
+                                   f"{name} is likely done around {hst(finish)} ({int(el)} min in, {cur.get('Energy', 0):.0f} kWh). {drive} min drive. Use the {CABLE.get(name, 'CCS cable')}.",
+                                   "default", "car")
+                              leave_sent.add(name)
+              except SystemExit:
+                  raise
+              except Exception as e:
+                  errors += 1
+                  print("error:", e)
+                  if errors >= 10:
+                      ntfy("Charger tracking stopped", "OpConnect stopped answering, so tracking ended.", "default", "warning")
+                      raise SystemExit(1)
+              time.sleep(60)
+          ntfy("Charger tracking ended", f"Nothing opened up in {hours:g} h.", "low", "hourglass")
