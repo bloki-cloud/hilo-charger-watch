@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hilo Charger Watch (live)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;
+--bg:light-dark(#f2f0ec,#121615);--panel:light-dark(#ffffff,#1c2220);--ink:light-dark(#161a19,#eef1ef);
+--mute:light-dark(#5d6461,#9aa39f);--line:light-dark(#dcd8d1,#2c3431);
+--go:light-dark(#178a4a,#3ccf7c);--busy:light-dark(#c8432f,#ff7a63);--off:light-dark(#8a8f8c,#6f7773);
+--lava:light-dark(#d9541e,#ff8a3d)}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(20px,4vw,48px) max(5vw,16px);max-width:1100px;margin:0 auto}
+h1,h2,.big{font-family:"Barlow Condensed",Barlow,sans-serif;letter-spacing:.01em}
+h1{font-size:clamp(32px,6vw,48px);line-height:1.05;margin:0}
+h2{font-size:24px;margin:0 0 10px}
+.sub{color:var(--mute);margin:4px 0 0}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:18px;
+padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--off);margin-right:8px;vertical-align:1px}
+.on .dot{background:var(--lava);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.on .dot{animation:none}}
+button{font:600 16px Barlow,sans-serif;min-height:44px;padding:0 18px;border-radius:999px;border:0;cursor:pointer;
+background:var(--ink);color:var(--bg)}
+button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+button:focus-visible{outline:3px solid var(--lava);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.units{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(22px,6vw,64px);margin-top:22px;align-items:end;padding:0 10px}
+.post{display:flex;flex-direction:column;align-items:center}
+.unit{--w:min(100%,240px);width:var(--w);position:relative;background:#f7f8f6;color:#161a19;border-radius:12px 12px 4px 4px;
+box-shadow:inset -12px 0 0 rgba(0,0,0,.06),0 3px 0 rgba(0,0,0,.12);display:flex;flex-direction:column;min-height:clamp(440px,118vw,580px)}
+.unit::before,.unit::after{content:"";position:absolute;top:44%;width:22px;height:46%;border:5px solid #1c2120;pointer-events:none}
+.unit::before{left:-19px;border-right:0;border-radius:24px 0 0 24px}
+.unit::after{right:-19px;border-left:0;border-radius:0 24px 24px 0}
+.cap{height:16px;background:#dfe2df;border-radius:12px 12px 0 0;font:700 10px Barlow;letter-spacing:.2em;color:#555;text-align:center;line-height:16px}
+.head{background:var(--st);color:#fff;padding:10px 12px;font:700 24px/1 "Barlow Condensed",sans-serif}
+.head small{display:block;font:500 12px Barlow;opacity:.9;margin-top:3px}
+.screen{margin:12px 12px 8px;background:#111614;color:#e6eee9;border-radius:8px;padding:12px;border:5px solid #2b312e}
+.big{font-size:clamp(26px,6.5vw,40px);line-height:1;color:var(--lit);font-weight:700;margin-bottom:6px}
+.track{height:10px;border-radius:99px;background:#2b312e;overflow:hidden;margin:8px 0 6px}
+.fill{height:100%;background:var(--lit);border-radius:99px;transition:width .6s}
+.row{display:flex;flex-direction:column;font-size:13px;color:#aab4af}
+.hols{display:flex;gap:6px;margin:0 6px}
+.hol{flex:1;background:#23292a;color:#d5dcd8;font:600 11px/1.2 Barlow;padding:9px 4px;border-radius:7px 7px 3px 3px;text-align:center}
+.ub{padding:10px 12px 8px;flex:1}
+.unit .plug{color:#59605d}
+.est{font-size:15px;margin:0}.est strong{font-size:18px}
+.vent{height:clamp(56px,14vw,84px);margin:0 12px 12px;border-radius:4px;background:#e9ece9 radial-gradient(circle,#a9afac 1.5px,transparent 1.8px) 0 0/7px 7px}
+.base{width:calc(min(100%,240px) + 16px);height:9px;background:var(--line);border-radius:3px}
+.post .trk{margin-top:12px;width:min(100%,240px)}
+.opn{display:flex;align-items:center;justify-content:center;min-height:44px;width:min(100%,240px);margin-top:8px;border-radius:999px;background:#178a4a;color:#fff;font:600 15px Barlow,sans-serif;text-decoration:none;text-align:center;padding:0 10px}
+.opn:focus-visible{outline:3px solid var(--lava);outline-offset:2px}
+.post .trk.on{background:var(--lava);color:#fff}
+ul.log{list-style:none;padding:0;margin:0;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+ul.log li{display:flex;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-size:15px}
+ul.log li:first-child{border-top:0}
+ul.log time{color:var(--mute);white-space:nowrap;min-width:70px}
+.note{color:var(--mute);font-size:14px;max-width:68ch}
+.plug{color:var(--mute);font-size:14px}
+.set{margin-top:12px;padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);display:grid;gap:8px}
+.set label{font-weight:600}
+.set input{font:16px Barlow,sans-serif;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#upd{font-size:14px}
+.nx{margin-top:16px;padding:14px 16px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;flex-direction:column;gap:2px}
+.nx.go{background:var(--go);color:#fff}
+.nx .k{font-size:14px;opacity:.85}
+.nx b{font:700 clamp(26px,6vw,36px)/1.1 "Barlow Condensed",sans-serif}
+.nx span:last-child{font-size:14px;opacity:.9}
+.busy{display:flex;align-items:flex-end;gap:3px;height:120px;padding:8px 0 22px;position:relative}
+.bc{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;position:relative}
+.bc i{display:block;background:var(--busy);border-radius:3px 3px 0 0}
+.bc span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--mute);white-space:nowrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px}
+.copied{min-height:1.5em;color:var(--mute);font-size:14px;margin:10px 0 0}
+.foot{padding-top:0}
+.foot .bar{margin-top:0;padding:10px 14px;font-size:14px}
+.foot .bar strong{font-size:15px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+button.sm{min-height:40px;padding:0 14px;font-size:14px}
+@media(max-width:640px){
+.grid2{grid-template-columns:minmax(0,1fr)}
+.units{padding:0 6px}
+.unit::before,.unit::after{width:12px;border-width:4px}
+.unit::before{left:-11px}.unit::after{right:-11px}
+.head{font-size:20px;padding:8px 10px}
+.screen{margin:8px 8px 6px;padding:8px;border-width:4px}
+.ub{padding:8px 9px 6px}
+.est{font-size:13px}.est strong{font-size:15px}
+.plug,.row{font-size:12px}
+.hol{font-size:10px;padding:7px 2px}
+.vent{margin:0 8px 8px}
+}
+</style>
+</head>
+<body>
+<div class="band">
+<h1>Hilo charger watch</h1>
+<div class="hd"><p class="sub">HECO Hilo Office fast chargers, 1200 Kilauea Ave<br><span id="upd"></span></p>
+<button class="ghost sm" id="refBtn">↻ Refresh</button></div>
+<div id="next"></div>
+<div class="units" id="units"></div>
+<p class="copied" id="copied"></p>
+</div>
+<div class="band grid2">
+<section>
+<h2>When it's usually busy</h2>
+<div id="busy"><p class="note">Builds up as sessions are seen.</p></div>
+<h2 style="margin-top:22px">Recent changes</h2>
+<ul class="log" id="log"><li>No changes seen yet.</li></ul>
+</section>
+<section>
+<h2>How the finish guess works</h2>
+<p class="note">Each charger's session history gives the real start time and kWh so far. When that history isn't available, the start time is when the page first saw the change, shown as "at least".</p>
+<p class="note" id="basis"></p>
+<p class="note">This page reads OpConnect's live feed every 30 seconds while it's open. For a push alert when it's closed, tap "Alert me via Claude" and paste the message in your Claude chat.</p><p class="note">Unofficial page. Not made by OpConnect or Hawaiian Electric.</p>
+</section>
+</div>
+<div class="band foot">
+<div class="bar" id="bar">
+<div><span class="dot"></span><strong id="mode">Connecting…</strong><div class="sub" id="modeSub"></div></div>
+<div class="acts">
+<button class="ghost sm" id="bothBtn" data-msg="track Hilo charger">Alerts via Claude</button>
+<button class="ghost sm" id="setBtn">Settings</button>
+</div>
+</div>
+<form class="set" id="set" hidden>
+<label for="acct">OpConnect account ID <span class="plug">(for minutes, kWh and history)</span></label>
+<input id="acct" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+<p class="note">Saved only in this browser on this device. It never goes into the page's address and isn't shared.</p>
+<label for="drv">Drive time (minutes)</label>
+<div class="acts"><input id="drv" type="number" min="1" max="120" inputmode="numeric" style="max-width:110px">
+<button type="button" class="ghost sm" id="locBtn">Use my location</button></div>
+<p class="note" id="locNote"></p>
+<div class="acts"><button class="sm" type="submit">Save</button><button class="ghost sm" type="button" id="forget">Forget account ID</button></div>
+</form>
+</div>
+<script>
+{
+const $=id=>document.getElementById(id);
+const DEFAULT_MIN=35, LOW=25, HIGH=50;
+let D=null;
+const PLUGS={OC14364:"CHAdeMO · CCS",OC14365:"NACS (Tesla) · CCS"};
+const t=ms=>new Date(ms).toLocaleTimeString("en-US",{timeZone:"Pacific/Honolulu",hour:"numeric",minute:"2-digit"});
+const mins=ms=>Math.max(0,Math.round(ms/60000));
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LIVE={err:"",busy:false};
+const LS={get(k,d){try{const v=localStorage.getItem("hcw."+k);return v==null?d:JSON.parse(v);}catch{return d;}},
+set(k,v){try{localStorage.setItem("hcw."+k,JSON.stringify(v));}catch{}}};
+const acct=()=>{const a=String(LS.get("acct","")).trim();return /^[0-9a-f-]{36}$/i.test(a)?a:"";};
+function typical(){return {mid:DEFAULT_MIN,lo:LOW,hi:HIGH};}
+function colour(st){return st==="AVAILABLE"?"#178a4a":st==="CHARGING"?"#c8432f":"#737a77"}
+function lit(st){return st==="AVAILABLE"?"#4ade8f":st==="CHARGING"?"#ff7c66":"#a3aba7"}
+function label(st){return st==="AVAILABLE"?"Available":st==="CHARGING"?"Charging":st?st.charAt(0)+st.slice(1).toLowerCase().replace(/_/g," "):"Unknown"}
+const q=(a,p)=>a[Math.min(a.length-1,Math.max(0,Math.round(p*(a.length-1))))];
+function hist(name){const h=D&&D.history&&Array.isArray(D.history[name])?D.history[name]:[];
+return h.filter(x=>+x.minutes>=3&&+x.minutes<=240&&+x.kwh>0.5);}
+const DRIVE_MIN=10;
+const OPEN={OC14365:"https://apps.apple.com/app/id500900492",OC14364:"https://apps.apple.com/app/id500900492"};
+const dm=()=>D&&D.drive&&+D.drive.min>0?Math.round(+D.drive.min):DRIVE_MIN;
+const dsrc=()=>D&&D.drive&&D.drive.at?` from where you were at ${t(D.drive.at)}`:" from home";
+const CABLE={OC14365:"NACS cable",OC14364:"CCS cable"};
+function speed(s){
+const ser=(Array.isArray(s.series)?s.series:[]).filter(p=>p&&p.t&&p.kwh>=0).sort((a,b)=>a.t-b.t);
+if(ser.length<3) return null;
+const last=ser[ser.length-1], prev=ser[ser.length-2], first=ser[0];
+const kwNow=(last.kwh-prev.kwh)/((last.t-prev.t)/36e5), kwAvg=(last.kwh-first.kwh)/((last.t-first.t)/36e5);
+let idleMin=0; for(let i=ser.length-1;i>0&&ser[i].kwh-ser[i-1].kwh<0.05;i--) idleMin=(last.t-ser[i-1].t)/6e4;
+return {kwNow,kwAvg,idle:idleMin>=4,slowing:kwAvg>5&&kwNow<0.6*kwAvg,idleMin};
+}
+function estimate(s,now,h){
+const el=(now-s.since)/6e4, kw=+s.kwh||0, kwAt=s.kwhAt||now;
+const elAt=(kwAt-s.since)/6e4, rate=elAt>1&&kw>0?kw/(elAt/60):0;
+const longer=h.map(x=>+x.minutes).filter(m=>m>el).sort((a,b)=>a-b);
+const sp=speed(s);
+let e={el,kw,kwAt,rate,sp,anyMin:false};
+if(sp&&sp.idle){e.anyMin=true;e.mid=now;return e;}
+if(longer.length>=2){e.lo=s.since+q(longer,.25)*6e4;e.mid=s.since+q(longer,.5)*6e4;e.hi=s.since+q(longer,.75)*6e4;}
+else {e.anyMin=true;e.mid=now+5*6e4;}
+const bigger=h.map(x=>+x.kwh).filter(k=>k>kw).sort((a,b)=>a-b), r=sp&&sp.kwNow>3?sp.kwNow:rate;
+if(r>5&&bigger.length>=2){e.eTarget=q(bigger,.5);e.eEnd=kwAt+(e.eTarget-kw)/r*36e5;e.eRate=r;
+if(!e.anyMin) e.mid=Math.round((e.mid+e.eEnd)/2);}
+if(sp&&sp.slowing&&!e.anyMin) e.mid=Math.min(e.mid,now+10*6e4);
+if(e.lo){e.lo=Math.min(e.lo,e.mid);e.hi=Math.max(e.hi,e.mid);}
+return e;
+}
+function realHTML(s,now,h){
+const e=estimate(s,now,h), all=h.map(x=>+x.minutes).sort((a,b)=>a-b);
+const pct=Math.min(100,Math.round(e.el/Math.max(q(all,.9)||60,e.el+1)*100));
+let line;
+if(e.sp&&e.sp.idle) line=`<strong>Car looks done</strong><div class="plug">No energy added for ${Math.round(e.sp.idleMin)} min. It may just be parked.</div>`;
+else if(e.anyMin) line=`<strong>Could finish any minute</strong><div class="plug">Already longer than the recent sessions here.</div>`;
+else line=`Likely done around <strong>${t(e.mid)}</strong>${e.lo?` <span class="plug">(${t(e.lo)}–${t(e.hi)})</span>`:""}`;
+let x="";
+if(e.sp&&e.sp.slowing&&!e.sp.idle) x+=`<div class="plug">Charging is slowing (${Math.round(e.sp.kwNow)} kW, was ${Math.round(e.sp.kwAvg)}), a sign it's nearly full.</div>`;
+if(e.eEnd&&!e.anyMin) x+=`<div class="plug">Sessions here usually end near ${e.eTarget.toFixed(0)} kWh (≈${t(e.eEnd)} at ${Math.round(e.eRate)} kW).</div>`;
+const kwShow=e.sp&&e.sp.kwNow>=0?e.sp.kwNow:e.rate;
+return `<div class="track"><div class="fill" style="width:${pct}%"></div></div>
+<div class="row"><span>${Math.round(e.el)} min · ${e.kw.toFixed(1)} kWh${kwShow>5?` · ${Math.round(kwShow)} kW`:""}</span><span>started ${t(s.since)}</span></div>
+<p class="est">${line}${x}</p>`;
+}
+function nextHTML(st,now){
+const open=st.filter(s=>String(s.status).toUpperCase()==="AVAILABLE");
+if(open.length) return `<div class="nx go"><span class="k">Open now</span><b>${open.map(s=>esc(s.name)).join(" & ")}</b><span>${dm()} min drive${dsrc()} · use the ${open.map(s=>CABLE[s.name]).join(" or ")}</span></div>`;
+const ests=st.filter(s=>String(s.status).toUpperCase()==="CHARGING"&&s.since&&s.sinceExact&&hist(s.name).length>=3)
+.map(s=>({s,e:estimate(s,now,hist(s.name))})).sort((a,b)=>a.e.mid-b.e.mid);
+if(!ests.length) return `<div class="nx"><span class="k">Next opening</span><b>Not enough data yet</b><span>Both chargers are in use.</span></div>`;
+const {s,e}=ests[0], leave=e.mid-dm()*6e4;
+const when=e.anyMin?"any minute":`~${t(e.mid)}`;
+const go=leave<=now?`<b>Leave now</b>`:`<b>Leave by ${t(leave)}</b>`;
+return `<div class="nx"><span class="k">Next opening: ${esc(s.name)} ${when}</span>${go}<span>${dm()} min drive${dsrc()} · use the ${CABLE[s.name]||"CCS cable"}${e.lo&&!e.anyMin?` · could be ${t(e.lo)}–${t(e.hi)}`:""}</span></div>`;
+}
+function busyHTML(){
+const all=["OC14365","OC14364"].flatMap(n=>hist(n).filter(x=>x.end).map(x=>({s:x.end-x.minutes*6e4,e:x.end})));
+if(all.length<4) return "";
+const span0=Math.min(...all.map(x=>x.s)), span1=Math.max(...all.map(x=>x.e));
+const hrs=[]; for(let h=6;h<=22;h++) hrs.push(h);
+const U=new Array(24).fill(0),A=new Array(24).fill(0),H=36e5;
+for(let b0=Math.floor(span0/H)*H;b0<span1;b0+=H){
+const hd=(((Math.floor((b0-10*H)/H))%24)+24)%24, lo=Math.max(b0,span0), hi=Math.min(b0+H,span1);
+A[hd]+=(hi-lo)*2; all.forEach(x=>{U[hd]+=Math.max(0,Math.min(hi,x.e)-Math.max(lo,x.s));});}
+const occ=hrs.map(h=>A[h]>H/2?Math.min(1,U[h]/A[h]):null);
+const lab=h=>h===12?"12p":h>12?(h-12)+"p":h+"a";
+return `<div class="busy">${hrs.map((h,i)=>{const v=occ[i];return `<div class="bc" title="${lab(h)}"><i style="height:${v==null?0:Math.max(4,Math.round(v*100))}%;opacity:${v==null?.25:1}"></i><span>${i%2?"":lab(h)}</span></div>`}).join("")}</div>
+<p class="note">Share of time both chargers were in use, by hour, from ${all.length} sessions since ${new Date(span0).toLocaleString("en-US",{timeZone:"Pacific/Honolulu",weekday:"short",hour:"numeric"})}. It fills in more the longer this page is used.</p>`;
+}
+function unitHTML(s,now,ty){
+const st=String(s.status||"UNKNOWN").toUpperCase();
+let body="";
+const h=hist(s.name);
+if(st==="CHARGING"&&s.since&&s.sinceExact&&h.length>=3){
+body=realHTML(s,now,h);
+} else if(st==="CHARGING"&&s.since){
+const el=mins(now-s.since), lo=s.since+ty.lo*6e4, mid=s.since+ty.mid*6e4, hi=s.since+ty.hi*6e4;
+const pct=Math.min(100,Math.round(el/ty.hi*100));
+const pre=s.sinceExact?"":"at least ";
+let line;
+if(now<lo) line=`Likely done around <strong>${t(mid)}</strong> <span class="plug">(${t(lo)}–${t(hi)})</span>`;
+else if(now<hi) line=`<strong>Could finish any minute</strong> <span class="plug">(usually by ${t(hi)})</span>`;
+else line=`<strong>Running long</strong> <span class="plug">past the usual ${ty.hi} min</span>`;
+body=`<div class="track"><div class="fill" style="width:${pct}%"></div></div>
+<div class="row"><span>Charging ${pre}${el} min</span><span>since ${pre?"before ":""}${t(s.since)}</span></div>
+<p class="est">${line}</p>`;
+} else if(st==="AVAILABLE"){
+body=`<p class="est"><strong>Open now.</strong>${s.since?` <span class="plug">Free since ${s.sinceExact?"":"before "}${t(s.since)}</span>`:""}</p>`;
+} else {
+body=`<p class="est">Not usable right now.${s.since?` <span class="plug">Since ${t(s.since)}</span>`:""}</p>`;
+}
+const btn=st==="AVAILABLE"?`<button class="trk ghost" disabled>Open now</button>`
+:`<button class="trk" data-msg="track ${esc(s.name)}">Alert me via Claude</button>`;
+const k=body.indexOf('<p class="est">'), scr=k<0?"":body.slice(0,k), est=k<0?body:body.slice(k);
+const plugs=(PLUGS[s.name]||"").split(" · ");
+return `<div class="post"><article class="unit" style="--st:${colour(st)};--lit:${lit(st)}">
+<div class="cap">DC FAST</div>
+<div class="head">${esc(s.name)}<small>Hilo Office</small></div>
+<div class="screen"><div class="big">${label(st)}</div>${scr}</div>
+<div class="hols">${plugs.map(p=>`<span class="hol">${esc(p)}</span>`).join("")}</div>
+<div class="ub">${est}</div>
+<div class="vent"></div>
+</article><div class="base"></div>${btn}<a class="opn" href="${OPEN[s.name]||OPEN.OC14365}" target="_blank" rel="noopener">Open OpConnect to start ↗</a></div>`;
+}
+function render(){
+const now=Date.now(), ty=typical();
+$("bar").classList.toggle("on",!LIVE.err&&!!D);
+if(!D){$("mode").textContent=LIVE.err?"Can't reach OpConnect":"Connecting…";$("modeSub").textContent=LIVE.err||"";}
+else{
+$("mode").textContent=LIVE.err?"Can't reach OpConnect right now":"Live · updates every 30 sec";
+$("modeSub").innerHTML=LIVE.err?`${esc(LIVE.err)} Showing ${t(D.lastCheck)} data.`:(acct()?"":"Add your OpConnect account ID in Settings to see minutes, kWh and finish times.");
+}
+const ORDER=["OC14365","OC14364"];
+const st=((D&&Array.isArray(D.stations))?D.stations.slice():[]).sort((a,b)=>{
+const i=ORDER.indexOf(a.name),j=ORDER.indexOf(b.name);return (i<0?9:i)-(j<0?9:j);});
+$("upd").textContent=D&&D.lastCheck?`Updated ${t(D.lastCheck)} (${mins(now-D.lastCheck)} min ago)`:"";
+$("next").innerHTML=st.length?nextHTML(st,now):"";
+const bz=busyHTML(); if(bz) $("busy").innerHTML=bz;
+$("units").innerHTML=st.length?st.map(s=>unitHTML(s,now,ty)).join(""):`<p class="note">Charger status shows up after the first check.</p>`;
+const lg=(D&&Array.isArray(D.log))?D.log.slice().sort((a,b)=>b.t-a.t).slice(0,12):[];
+$("log").innerHTML=lg.length?lg.map(e=>`<li><time>${t(e.t)}</time><span><b>${esc(e.name)}</b> ${esc(label(e.from).toLowerCase())} → ${esc(label(e.to).toLowerCase())}${e.minutes?` <span class="plug">(${e.minutes} min session)</span>`:""}</span></li>`).join(""):"<li>No changes seen yet.</li>";
+const nh=["OC14364","OC14365"].map(n=>hist(n).length).reduce((a,b)=>a+b,0);
+$("basis").textContent=nh?`Finish times come from each charger's last ${nh} OpConnect sessions: of the past sessions that ran at least as long as this one has so far, the middle one sets the guess and the middle half sets the range. The energy line uses the current charging speed and how many kWh sessions here usually end at.`
+:`Until a few full sessions have been seen here, the guess assumes a typical fast-charge stop of about ${DEFAULT_MIN} min (range ${LOW}–${HIGH}).`;
+}
+async function copyMsg(msg,btn){
+let ok=false;
+try{await navigator.clipboard.writeText(msg);ok=true;}catch{}
+$("copied").textContent=ok?`Copied "${msg}". Paste it in the Claude chat.`:`Send "${msg}" in the Claude chat.`;
+if(btn){const was=btn.dataset.label||btn.textContent;btn.dataset.label=was;
+btn.textContent=ok?"Copied. Paste in chat":`Type "${msg}" in chat`;
+clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.textContent=was;},4000);}
+}
+$("units").addEventListener("click",e=>{const b=e.target.closest("[data-msg]");if(b)copyMsg(b.dataset.msg,b);});
+$("bothBtn").addEventListener("click",()=>copyMsg($("bothBtn").dataset.msg,$("bothBtn")));
+const BASE="https://www.opconnect.com/API/";
+const STATUS_URL=BASE+"ChargingStations.svc/StationLocationForWeb/737/4421955b-1096-4f12-8c01-f57483a7bd6e";
+const msDate=v=>{const m=/Date\((\d+)/.exec(String(v||""));return m?+m[1]:null;};
+async function getJSON(url){
+const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);
+try{const r=await fetch(url,{signal:ctl.signal,cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json();}
+finally{clearTimeout(tm);}
+}
+async function refresh(){
+if(LIVE.busy)return; LIVE.busy=true; LIVE.err=""; const rb=$("refBtn"); rb.textContent="Updating…";
+const now=Date.now(), prev=D&&Array.isArray(D.stations)?D.stations:[];
+try{
+const st=await getJSON(STATUS_URL);
+const sess=LS.get("sessions",{});
+const out=[];
+for(const c of (st.ChargingStations||[])){
+const name=String(c.Title||"").trim(), status=String(c.OCPIStatus||"UNKNOWN").toUpperCase();
+const p=prev.find(x=>x.name===name)||{};
+let row={name,status,since:p.status===status?p.since:now,sinceExact:p.status===status?!!p.sinceExact:false};
+if(acct()){
+try{
+const h=await getJSON(`${BASE}ChargingSessions.svc/ChargingSessionList/Descending/${acct()}/?stationID=${c.ID}`);
+let cur=null;
+for(const x of (h.SessionList||[])){
+const s0=msDate(x.StartTime), e0=msDate(x.EndTime);
+if(!s0)continue;
+if(!e0){if(!cur)cur={id:x.SessionId,s:s0,kwh:+x.Energy||0};continue;}
+sess[x.SessionId]={name,s:s0,e:e0,kwh:+x.Energy||0};
+}
+if(status==="CHARGING"&&cur){
+row.since=cur.s;row.sinceExact=true;row.kwh=cur.kwh;row.kwhAt=now;
+const key="series."+cur.id, ser=LS.get(key,[]);
+if(!ser.length||ser[ser.length-1].kwh!==cur.kwh)ser.push({t:now,kwh:cur.kwh});
+row.series=ser.slice(-60);LS.set(key,row.series);
+} else if(status==="AVAILABLE"){
+const ends=Object.values(sess).filter(x=>x.name===name).map(x=>x.e);
+if(ends.length){row.since=Math.max(...ends);row.sinceExact=true;}
+}
+}catch(e){LIVE.err="History didn't load (account ID may have changed).";}
+}
+out.push(row);
+}
+const ids=Object.keys(sess).sort((a,b)=>sess[b].e-sess[a].e);ids.slice(400).forEach(k=>delete sess[k]);
+LS.set("sessions",sess);
+const history={};
+for(const k of ids.slice(0,400)){const x=sess[k];(history[x.name]=history[x.name]||[]).push({end:x.e,kwh:+x.kwh.toFixed(1),minutes:+((x.e-x.s)/6e4).toFixed(1)});}
+const log=[];
+ids.slice(0,8).forEach(k=>{const x=sess[k];log.push({t:x.e,name:x.name,from:"CHARGING",to:"AVAILABLE",minutes:Math.round((x.e-x.s)/6e4)},{t:x.s,name:x.name,from:"AVAILABLE",to:"CHARGING"});});
+out.filter(r=>r.status==="CHARGING"&&r.sinceExact).forEach(r=>log.push({t:r.since,name:r.name,from:"AVAILABLE",to:"CHARGING"}));
+D={stations:out,history,log,lastCheck:now,drive:LS.get("drive",null)};
+LS.set("last",D);
+}catch(e){LIVE.err="OpConnect didn't answer.";}
+LIVE.busy=false; rb.textContent="↻ Refresh"; render();
+}
+const SITE={lat:19.7110375,lon:-155.0770577};
+function hav(a,b){const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lon-a.lon);
+const h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function locate(quiet){
+if(!navigator.geolocation){if(!quiet)$("locNote").textContent="Location isn't available in this browser.";return;}
+if(!quiet)$("locNote").textContent="Finding you…";
+navigator.geolocation.getCurrentPosition(async p=>{
+const me={lat:p.coords.latitude,lon:p.coords.longitude};let min=null,how="road route";
+try{const r=await getJSON(`https://router.project-osrm.org/route/v1/driving/${me.lon},${me.lat};${SITE.lon},${SITE.lat}?overview=false`);
+if(r.routes&&r.routes[0])min=Math.ceil(r.routes[0].duration/60)+1;}catch{}
+if(min==null){min=Math.max(2,Math.round(hav(me,SITE)*1.35/40*60)+1);how="straight-line estimate";}
+const dr={min,at:Date.now(),how};LS.set("drive",dr);if(D)D.drive=dr;$("drv").value=min;
+$("locNote").textContent=`${min} min from here (${how}).`;render();
+},e=>{if(!quiet)$("locNote").textContent="Couldn't get your location. You can type a drive time instead.";},{enableHighAccuracy:true,timeout:10000,maximumAge:120000});
+}
+$("refBtn").addEventListener("click",refresh);
+$("setBtn").addEventListener("click",()=>{const f=$("set");f.hidden=!f.hidden;if(!f.hidden){$("acct").value=LS.get("acct","");const d=LS.get("drive",null);$("drv").value=d?d.min:DRIVE_MIN;}});
+$("locBtn").addEventListener("click",()=>locate(false));
+$("set").addEventListener("submit",e=>{e.preventDefault();
+LS.set("acct",$("acct").value.trim());
+const m=Math.round(+$("drv").value); if(m>0){const d=LS.get("drive",null)||{};if(d.min!==m)LS.set("drive",{min:m,at:0,how:"typed"});}
+$("set").hidden=true;refresh();});
+$("forget").addEventListener("click",()=>{LS.set("acct","");$("acct").value="";});
+D=LS.get("last",null); render();
+refresh();
+setInterval(()=>{if(document.visibilityState==="visible")refresh();},30000);
+setInterval(render,15000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refresh();});
+try{navigator.permissions&&navigator.permissions.query({name:"geolocation"}).then(p=>{if(p.state==="granted")locate(true);});}catch{}
+}
+</script>
+</body>
+</html>
